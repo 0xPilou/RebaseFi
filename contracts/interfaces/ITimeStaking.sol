@@ -9,4 +9,7 @@ interface ITimeStaking {
         @param _trigger bool
      */
     function unstake( uint _amount, bool _trigger ) external;
+
+    function Memories() external view returns (address);
+    function Time() external view returns (address);
 }
