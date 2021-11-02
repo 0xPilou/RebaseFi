@@ -69,7 +69,7 @@ contract TimeOptimizer is Ownable {
         uint256 profit = (IERC20(MEMO).balanceOf(address(this))).sub(mum);
         uint256 amountToReinvest = profit.mul(_basisPoint).div(10000);
 
-        ITimeStaking(_timeStakingAddr).unstake(amountToReinvest, true);
+        ITimeStaking(timeStakingAddr).unstake(amountToReinvest, true);
         mum = IERC20(MEMO).balanceOf(address(this));
 
         if(IERC20(TIME).balanceOf(address(this)) > 0){
