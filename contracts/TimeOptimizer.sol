@@ -7,7 +7,7 @@ import 'openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol';
 import './interfaces/ITimeStaking.sol';
 import './interfaces/IUniswapV2Router.sol';
 
-contract OhmOptimizer is Ownable {
+contract TimeOptimizer is Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
