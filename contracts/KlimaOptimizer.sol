@@ -10,7 +10,6 @@ import './interfaces/IUniswapV2Router.sol';
 contract KlimaOptimizer is Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
-
     
     uint256 constant MAX_INT = 2**256 - 1;
 
@@ -20,7 +19,7 @@ contract KlimaOptimizer is Ownable {
     /**
      * @dev Tokens addresses
      */    
-    address public sKLIMA;
+    address public SKLIMA;
     address public KLIMA;
 
     /**
@@ -83,7 +82,6 @@ contract KlimaOptimizer is Ownable {
                 msg.sender,
                 block.timestamp.add(600)
             );
-            //IERC20(_desiredToken).safeTransfer(msg.sender, IERC20(_desiredToken).balanceOf(address(this)));
         }     
     }
     
