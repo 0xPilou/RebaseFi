@@ -27,7 +27,7 @@ contract KlimaOptimizer is Ownable {
      */
     address public klimaStakingAddr;
     address public uniV2RouterAddr;
-    //address public parentFactory;
+    address public parentFactory;
 
     /**
      * @dev Initializes the strategy for the given protocol
@@ -38,7 +38,7 @@ contract KlimaOptimizer is Ownable {
     ) { 
         klimaStakingAddr = _klimaStakingAddr;
         uniV2RouterAddr = _uniV2RouterAddr;
-        //parentFactory = msg.sender;
+        parentFactory = msg.sender;
 
         SKLIMA = IKlimaStaking(_klimaStakingAddr).sKLIMA();
         KLIMA = IKlimaStaking(_klimaStakingAddr).KLIMA();
