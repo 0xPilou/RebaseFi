@@ -5,16 +5,18 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const truffleAssert = require('truffle-assertions');
 
+// npx hardhat test test\1_test_TimeOptimizer.js
+
 describe("TimeOptimizer Unit Tests", function () {  
     this.timeout(40000);
     
     /* ABIs */
     const MEMOabi = require("../external_abi/MEMO.json");   
-    const WETHabi = require("../external_abi/WETH.json");
+    const WETHabi = require("../external_abi/WAVAX.json");
 
     /* Addresses */
     const MEMO = "0x136acd46c134e8269052c62a67042d6bdedde3c9"; 
-    const WETH = "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB";
+    const WETH = "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7";
     const JOEROUTER = "0x60aE616a2155Ee3d9A68541Ba4544862310933d4"; 
     const TIMESTAKING = "0x4456B87Af11e87E329AB7d7C7A246ed1aC2168B9";
 
@@ -30,14 +32,14 @@ describe("TimeOptimizer Unit Tests", function () {
 
     before(async function () {
 
-    // Resetting the Avalanche Hardhat Mainnet Fork Network to block 6263382
+    // Resetting the Avalanche Hardhat Mainnet Fork Network to block 6729600
     await network.provider.request({
         method: "hardhat_reset",
         params: [
           {
             forking: {
               jsonRpcUrl: `https://api.avax.network/ext/bc/C/rpc`,
-              blockNumber: 6685000
+              blockNumber:6729600
             },
           },
         ],
@@ -45,10 +47,10 @@ describe("TimeOptimizer Unit Tests", function () {
 
     await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: ["0xdF42181cdE9eCB156a5FdeF7561ADaB14937AA26"],
+        params: ["0x6e0a0DF2d76B97c610e5B96c32CE53b8Ab4c856C"],
       });
-    whaleMEMO = await ethers.getSigner("0xdF42181cdE9eCB156a5FdeF7561ADaB14937AA26");
-    
+    whaleMEMO = await ethers.getSigner("0x6e0a0DF2d76B97c610e5B96c32CE53b8Ab4c856C");
+   
     // Define the signers required for the tests
     [user, nonOwner, _] = await ethers.getSigners();   
 
@@ -58,10 +60,12 @@ describe("TimeOptimizer Unit Tests", function () {
         TIMESTAKING,
         JOEROUTER
     );
-    const memoDecimals = await memo.decimals();
-    const amount = ethers.utils.parseUnits("100", memoDecimals);
-    await memo.connect(whaleMEMO).transfer(user.address, amount)
 
+    const memoDecimals = await memo.decimals();
+    const amount = 100;
+    const weiAmount = ethers.utils.parseUnits(amount.toString(), memoDecimals);
+
+    await memo.connect(whaleMEMO).transfer(user.address, weiAmount);
     });
 
     // Impersonate a MEMO Whale to transfer MEMO to the TimeOptimizer contract to simulate the rebase
@@ -73,44 +77,46 @@ describe("TimeOptimizer Unit Tests", function () {
 
     it("should deposit MEMO Token into the TimeOptimizer Contract", async () => {
     
-        const amount = await memo.balanceOf(user.address);    
+      const amount = await memo.balanceOf(user.address);    
+      const memoDecimals = await memo.decimals();
 
-        await timeOptimizer.connect(user).deposit(amount);    
+      await memo.connect(user).approve(timeOptimizer.address, amount);
+      await timeOptimizer.connect(user).deposit(amount);    
 
-        const timeOptBalance = await memo.balanceOf(timeOptimizer.address);
-        const mum = await timeOptimizer.mum();    
+      const timeOptBalance = await memo.balanceOf(timeOptimizer.address);
+      const mum = await timeOptimizer.mum();    
 
-        expect(amount).to.equal(timeOptBalance)
-        expect(amount).to.equal(mum)
-        expect(timeOptBalance).to.equal(mum)  
-        await rebase();
+      expect(amount).to.equal(timeOptBalance)
+      expect(amount).to.equal(mum)
+      expect(timeOptBalance).to.equal(mum)  
+
+      console.log("TimeOpti MEMO Balance : ", ethers.utils.formatUnits(timeOptBalance, memoDecimals));
+
+      console.log("MUM : ", ethers.utils.formatUnits(mum, memoDecimals));
+      console.log("amount : ", ethers.utils.formatUnits(amount, memoDecimals));
+        
+      await rebase();
     });
 
     it("should reinvest 50% of the rebase in WETH", async () => {
-        const basisPoint = 5000;
-        const memoDecimals = await memo.decimals();
+      const basisPoint = 5000;
+      const memoDecimals = await memo.decimals();
 
-        wethBalBefore = await weth.balanceOf(user.address);
-        timeOptiBalBefore = await memo.balanceOf(timeOptimizer.address);
-        mumBefore = await timeOptimizer.mum();
+      const wethBalBefore = await weth.balanceOf(user.address);
+      const timeOptiBalBefore = await memo.balanceOf(timeOptimizer.address);
+      const mumBefore = await timeOptimizer.mum();
 
-        timeOptimizer.connect(user).reinvest(weth.address, basisPoint);
+      await timeOptimizer.connect(user).reinvest(weth.address, basisPoint);
 
-        wethBalAfter = await weth.balanceOf(user.address);
-        timeOptiBalAfter = await memo.balanceOf(timeOptimizer.address);
-        mumAfter = await timeOptimizer.mum();
+      const wethBalAfter = await weth.balanceOf(user.address);
+      const timeOptiBalAfter = await memo.balanceOf(timeOptimizer.address);
 
-        console.log("WETH Balance Before : ", ethers.utils.formatEther(wethBalBefore));
-        console.log("WETH Balance After: ", ethers.utils.formatEther(wethBalAfter));
+      expect(wethBalBefore < wethBalAfter).to.equal(true)
+      expect(timeOptiBalAfter).to.equal(timeOptiBalBefore.sub(mumBefore).mul(basisPoint).div(10000).add(mumBefore))
 
-        console.log("TimeOpti MEMO Balance Before: ", ethers.utils.formatUnits(timeOptiBalBefore, memoDecimals));
-        console.log("TimeOpti MEMO Balance After: ", ethers.utils.formatUnits(timeOptiBalAfter, memoDecimals));
-
-        console.log("MUM Before : ", ethers.utils.formatUnits(mumBefore));
-        console.log("MUM After : ", ethers.utils.formatUnits(mumAfter));
-        expect(wethBalBefore < wethBalAfter).to.equal(true)
-        expect(timeOptiBalAfter).to.equal(timeOptiBalBefore.sub(timeOptiBalBefore.mul(basisPoint).div(10000)))
     });
+
+
 
 });
 
