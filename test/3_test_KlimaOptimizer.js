@@ -95,15 +95,10 @@ describe("KlimaOptimizer Unit Tests", function () {
   });
   it("should reinvest 50% of the rebase in WETH", async () => {
     const basisPoint = 5000;
-    const sklimaDecimals = await sklima.decimals();
 
     wethBalBefore = await weth.balanceOf(user.address);
     klimaOptiBalBefore = await sklima.balanceOf(klimaOptimizer.address);
     mumBefore = await klimaOptimizer.skum();
-
-    console.log("WETH Balance Before : ", ethers.utils.formatEther(wethBalBefore));
-    console.log("TimeOpti SKLIMA Balance Before: ", ethers.utils.formatUnits(klimaOptiBalBefore, sklimaDecimals));
-    console.log("MUM Before : ", ethers.utils.formatUnits(mumBefore, sklimaDecimals));
 
     await klimaOptimizer.connect(user).reinvest(weth.address, basisPoint);
 
@@ -111,13 +106,7 @@ describe("KlimaOptimizer Unit Tests", function () {
     klimaOptiBalAfter = await sklima.balanceOf(klimaOptimizer.address);
     mumAfter = await klimaOptimizer.skum();
 
-    console.log("WETH Balance After: ", ethers.utils.formatEther(wethBalAfter));
-    console.log("TimeOpti SKLIMA Balance After: ", ethers.utils.formatUnits(klimaOptiBalAfter, sklimaDecimals));
-    console.log("MUM After : ", ethers.utils.formatUnits(mumAfter, sklimaDecimals));
-
     expect(wethBalBefore < wethBalAfter).to.equal(true)
     expect(klimaOptiBalAfter).to.equal(klimaOptiBalBefore.sub(mumBefore).mul(basisPoint).div(10000).add(mumBefore))
   });
-
 });
-
