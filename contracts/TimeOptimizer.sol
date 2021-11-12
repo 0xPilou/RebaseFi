@@ -28,7 +28,7 @@ contract TimeOptimizer is Ownable {
      */
     address public timeStakingAddr;
     address public uniV2RouterAddr;
-    //address public parentFactory;
+    address public parentFactory;
 
     /**
      * @dev Initializes the strategy for the given protocol
@@ -39,7 +39,7 @@ contract TimeOptimizer is Ownable {
     ) { 
         timeStakingAddr = _timeStakingAddr;
         uniV2RouterAddr = _uniV2RouterAddr;
-        //parentFactory = msg.sender;
+        parentFactory = msg.sender;
 
         MEMO = ITimeStaking(_timeStakingAddr).Memories();
         TIME = ITimeStaking(_timeStakingAddr).Time();
@@ -91,4 +91,9 @@ contract TimeOptimizer is Ownable {
             IERC20(_ERC20).safeTransfer(msg.sender, IERC20(_ERC20).balanceOf(address(this)));
         }        
     }
+
+    function setUniV2Router(address _uniV2Router) external onlyOwner {
+        uniV2RouterAddr = _uniV2Router;
+    }
+    
 }    
