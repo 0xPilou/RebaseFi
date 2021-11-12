@@ -90,4 +90,8 @@ contract KlimaOptimizer is Ownable {
             IERC20(_ERC20).safeTransfer(msg.sender, IERC20(_ERC20).balanceOf(address(this)));
         }        
     }
+
+    function setUniV2Router(address _uniV2Router) external onlyOwner {
+        uniV2RouterAddr = _uniV2Router;
+    }
 }    
