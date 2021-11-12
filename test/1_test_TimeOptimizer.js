@@ -39,7 +39,7 @@ describe("TimeOptimizer Unit Tests", function () {
           {
             forking: {
               jsonRpcUrl: `https://api.avax.network/ext/bc/C/rpc`,
-              blockNumber:6729600
+              blockNumber:6844000
             },
           },
         ],
@@ -50,6 +50,12 @@ describe("TimeOptimizer Unit Tests", function () {
         params: ["0x6e0a0DF2d76B97c610e5B96c32CE53b8Ab4c856C"],
       });
     whaleMEMO = await ethers.getSigner("0x6e0a0DF2d76B97c610e5B96c32CE53b8Ab4c856C");
+
+    await hre.network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: ["0x91F83E3d6C37908454687517E748555E7ad0fe53"],
+    });
+    whaleWETH = await ethers.getSigner("0x91F83E3d6C37908454687517E748555E7ad0fe53");
    
     // Define the signers required for the tests
     [user, nonOwner, _] = await ethers.getSigners();   
@@ -78,7 +84,6 @@ describe("TimeOptimizer Unit Tests", function () {
     it("should deposit MEMO Token into the TimeOptimizer Contract", async () => {
     
       const amount = await memo.balanceOf(user.address);    
-      const memoDecimals = await memo.decimals();
 
       await memo.connect(user).approve(timeOptimizer.address, amount);
       await timeOptimizer.connect(user).deposit(amount);    
@@ -86,21 +91,15 @@ describe("TimeOptimizer Unit Tests", function () {
       const timeOptBalance = await memo.balanceOf(timeOptimizer.address);
       const mum = await timeOptimizer.mum();    
 
-      expect(amount).to.equal(timeOptBalance)
-      expect(amount).to.equal(mum)
-      expect(timeOptBalance).to.equal(mum)  
-
-      console.log("TimeOpti MEMO Balance : ", ethers.utils.formatUnits(timeOptBalance, memoDecimals));
-
-      console.log("MUM : ", ethers.utils.formatUnits(mum, memoDecimals));
-      console.log("amount : ", ethers.utils.formatUnits(amount, memoDecimals));
+      expect(amount).to.equal(timeOptBalance);
+      expect(amount).to.equal(mum);
+      expect(timeOptBalance).to.equal(mum);
         
       await rebase();
     });
 
     it("should reinvest 50% of the rebase in WETH", async () => {
       const basisPoint = 5000;
-      const memoDecimals = await memo.decimals();
 
       const wethBalBefore = await weth.balanceOf(user.address);
       const timeOptiBalBefore = await memo.balanceOf(timeOptimizer.address);
@@ -116,7 +115,30 @@ describe("TimeOptimizer Unit Tests", function () {
 
     });
 
+    it("should recover the lost / airdropped WETH from the TimeOptimizer contract", async () => {
 
+      const amountToTransfer = 10;
+      const weiAmountToTransfer = ethers.utils.parseEther(amountToTransfer.toString());
+      await weth.connect(whaleWETH).transfer(timeOptimizer.address, weiAmountToTransfer);
+  
+      // Checking the balances before the recovery operation
+      const optiWethBalBefore = await weth.balanceOf(timeOptimizer.address);
+      const userWethBalBefore = await weth.balanceOf(user.address);
+  
+      // ERC20 Recovery Operation
+      await timeOptimizer.connect(user).recoverERC20(weth.address);
+  
+      // Checking the balances after the recovery operation
+      const optiWethBalAfter = await weth.balanceOf(timeOptimizer.address);
+      const userWethBalAfter = await weth.balanceOf(user.address);
+  
+      // Assertion #1 : Optimizer Token C Balance Before > Optimizer Token C Balance After
+      expect(optiWethBalBefore > optiWethBalAfter).to.equal(true, "Optimizer Balance of WETH is incorrect");
+      expect(optiWethBalAfter).to.equal(0, "Optimizer Balance of WETH after recovery should be 0");
+        
+      // Assertion #2 : User Token C Balance Before < User Token C Balance After
+      expect(userWethBalAfter).to.equal(userWethBalBefore.add(weiAmountToTransfer), "User Balance of WETH is incorrect");
+    });
 
 });
 
