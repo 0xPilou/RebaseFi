@@ -55,6 +55,12 @@ describe("KlimaOptimizer Unit Tests", function () {
     });
     whaleSKLIMA = await ethers.getSigner("0x327924cb8fb1daf959bbb8441f9b522e716f7794");
 
+    await hre.network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: ["0x5C5A4AE893c4232A050b01a84E193e107Dd80CA2"],
+    });
+    whaleWETH = await ethers.getSigner("0x5C5A4AE893c4232A050b01a84E193e107Dd80CA2");
+
     /* Define the signers required for the tests */
     [user, nonOwner, _] = await ethers.getSigners();   
 
@@ -109,4 +115,47 @@ describe("KlimaOptimizer Unit Tests", function () {
     expect(wethBalBefore < wethBalAfter).to.equal(true)
     expect(klimaOptiBalAfter).to.equal(klimaOptiBalBefore.sub(mumBefore).mul(basisPoint).div(10000).add(mumBefore))
   });
+
+  it("should recover the lost / airdropped WETH from the TimeOptimizer contract", async () => {
+
+    const amountToTransfer = 10;
+    const weiAmountToTransfer = ethers.utils.parseEther(amountToTransfer.toString());
+    await weth.connect(whaleWETH).transfer(klimaOptimizer.address, weiAmountToTransfer);
+
+    // Checking the balances before the recovery operation
+    const optiWethBalBefore = await weth.balanceOf(klimaOptimizer.address);
+    const userWethBalBefore = await weth.balanceOf(user.address);
+
+    // ERC20 Recovery Operation
+    await klimaOptimizer.connect(user).recoverERC20(weth.address);
+
+    // Checking the balances after the recovery operation
+    const optiWethBalAfter = await weth.balanceOf(klimaOptimizer.address);
+    const userWethBalAfter = await weth.balanceOf(user.address);
+
+    // Assertion #1 : Optimizer Token C Balance Before > Optimizer Token C Balance After
+    expect(optiWethBalBefore > optiWethBalAfter).to.equal(true, "Optimizer Balance of WETH is incorrect");
+    expect(optiWethBalAfter).to.equal(0, "Optimizer Balance of WETH after recovery should be 0");
+      
+    // Assertion #2 : User Token C Balance Before < User Token C Balance After
+    expect(userWethBalAfter).to.equal(userWethBalBefore.add(weiAmountToTransfer), "User Balance of WETH is incorrect");
+  });
+
+  it("should prevent non-owner to interact with the contract", async () => { 
+
+    const amount = 10;
+    const weiAmount = ethers.utils.parseEther(amount.toString());
+
+    // Assertion : Transaction should revert as the caller is not the owner of the contract
+    await truffleAssert.reverts(klimaOptimizer.connect(nonOwner).deposit(weiAmount));
+
+    // Assertion : Transaction should revert as the caller is not the owner of the contract
+    await truffleAssert.reverts(klimaOptimizer.connect(nonOwner).withdraw(weiAmount));
+    
+    // Assertion : Transaction should revert as the caller is not the owner of the contract
+    await truffleAssert.reverts(klimaOptimizer.connect(nonOwner).reinvest(weth.address, 5000));
+
+    // Assertion : Transaction should revert as the caller is not the owner of the contract
+    await truffleAssert.reverts(klimaOptimizer.connect(nonOwner).recoverERC20(weth.address));
+});
 });
