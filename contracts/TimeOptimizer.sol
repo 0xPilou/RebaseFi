@@ -80,10 +80,9 @@ contract TimeOptimizer is Ownable {
                 IERC20(TIME).balanceOf(address(this)),
                 0,
                 timeToDesiredToken,
-                address(this),
+                msg.sender,
                 block.timestamp.add(600)
             );
-            IERC20(_desiredToken).safeTransfer(msg.sender, IERC20(_desiredToken).balanceOf(address(this)));
         }     
     }
     
