@@ -140,5 +140,23 @@ describe("TimeOptimizer Unit Tests", function () {
       expect(userWethBalAfter).to.equal(userWethBalBefore.add(weiAmountToTransfer), "User Balance of WETH is incorrect");
     });
 
+    it("should prevent non-owner to interact with the contract", async () => { 
+
+      const amount = 10;
+      const weiAmount = ethers.utils.parseEther(amount.toString());
+
+      // Assertion : Transaction should revert as the caller is not the owner of the contract
+      await truffleAssert.reverts(timeOptimizer.connect(nonOwner).deposit(weiAmount));
+
+      // Assertion : Transaction should revert as the caller is not the owner of the contract
+      await truffleAssert.reverts(timeOptimizer.connect(nonOwner).withdraw(weiAmount));
+      
+      // Assertion : Transaction should revert as the caller is not the owner of the contract
+      await truffleAssert.reverts(timeOptimizer.connect(nonOwner).reinvest(weth.address, 5000));
+
+      // Assertion : Transaction should revert as the caller is not the owner of the contract
+      await truffleAssert.reverts(timeOptimizer.connect(nonOwner).recoverERC20(weth.address));
+  });
+
 });
 
