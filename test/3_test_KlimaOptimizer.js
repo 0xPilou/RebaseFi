@@ -35,7 +35,7 @@ describe("KlimaOptimizer Unit Tests", function () {
 
   before(async function () {
 
-    /* Resetting the Avalanche Hardhat Mainnet Fork Network to block 6263382 */
+    /* Resetting the Polygon Hardhat Mainnet Fork Network to block 6263382 */
     await network.provider.request({
       method: "hardhat_reset",
       params: [
