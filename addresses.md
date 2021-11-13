@@ -41,6 +41,10 @@ Addresses of the token involved in strategy
 #### **DAI.e**
 0xd586E7F844cEa2F87f50152665BCbc2C279D8d70
 
+#### **WAVAX**
+0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7
+
+
 
 
 
