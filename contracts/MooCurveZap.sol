@@ -28,7 +28,9 @@ contract MooCurveZap {
         require(ICurvePool(_curve3Pool).lp_token() == IBeefyVault(_beefyVault).want(), "Incorrect Parameters");
         curve3Pool = _curve3Pool;        
         beefyVault = _beefyVault;
-        underlyingTokens = ICurvePool(curve3Pool).underlying_coins();     
+        underlyingTokens[0] = ICurvePool(curve3Pool).underlying_coins(0);     
+        underlyingTokens[1] = ICurvePool(curve3Pool).underlying_coins(1);     
+        underlyingTokens[2] = ICurvePool(curve3Pool).underlying_coins(2);     
         curveLP = IBeefyVault(_beefyVault).want();   
     }
  
@@ -41,24 +43,24 @@ contract MooCurveZap {
             IERC20(_tokenToZap).safeTransferFrom(msg.sender, address(this), _amountToZap);
         }
 
-        IERC20(_tokenToZap).safeApprove(_curve3Pool, _amountToZap); 
+        IERC20(_tokenToZap).safeApprove(curve3Pool, _amountToZap); 
 
-        uint256[3] amounts;
-        amounts[id] = _amountToZap
+        uint256[3] memory amounts;
+        amounts[id] = _amountToZap;
 
-        uint256 minMintAmount = ICurvePool(curve3Pool).calc_token_amount(amounts, true)
+        uint256 minMintAmount = ICurvePool(curve3Pool).calc_token_amount(amounts, true);
 
         ICurvePool(curve3Pool).add_liquidity(amounts, minMintAmount);
 
         IERC20(curveLP).safeTransfer(msg.sender, IERC20(curveLP).balanceOf(address(this)));
     }
 
-    function _isUnderlying(address _token) internal returns (bool, uint) {
-        for(uint i=0, i<underlyingTokens.length, i++) {
+    function _isUnderlying(address _token) internal view returns (bool, uint) {
+        for(uint i=0; i<3; i++) {
             if(_token == underlyingTokens[i]) {
-                return true, i;
+                return (true, i);
             } 
         }
-        return false, 404;
+        return (false, 404);
     }
 }
