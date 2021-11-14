@@ -35,18 +35,21 @@ contract MooCurveZap {
     }
  
     function zap(address _tokenToZap, uint256 _amountToZap) external {
-        (bool supported, uint id) = _isUnderlying(_tokenToZap);
-        require(supported, "Unsupported asset");
         require(IERC20(_tokenToZap).balanceOf(address(msg.sender)) >= _amountToZap);
 
         if(msg.sender != address(this)){
             IERC20(_tokenToZap).safeTransferFrom(msg.sender, address(this), _amountToZap);
         }
+        _addLiquidityToCurve(_tokenToZap, _amountToZap);
+    }
 
-        IERC20(_tokenToZap).safeApprove(curve3Pool, _amountToZap); 
-
+    function _addLiquidityToCurve(address _token, uint256 _amount) internal {
+        (bool supported, uint id) = _isUnderlying(_token);
+        require(supported, "Unsupported asset");
+        IERC20(_token).safeApprove(curve3Pool, _amount); 
+        
         uint256[3] memory amounts;
-        amounts[id] = _amountToZap;
+        amounts[id] = _amount;
 
         uint256 minMintAmount = ICurvePool(curve3Pool).calc_token_amount(amounts, true);
 
