@@ -8,8 +8,7 @@ const truffleAssert = require('truffle-assertions');
 // npx hardhat test test\5_test_MooCurveZap.js --network localhost
 
 describe("MooCurveZap Unit Tests", function () {  
-    this.timeout(40000);
-    
+
     /* ABIs */
     const DAIabi = require("../external_abi/avalanche/DAI.json");
     const USDCabi = require("../external_abi/avalanche/USDC.json");
@@ -71,6 +70,13 @@ describe("MooCurveZap Unit Tests", function () {
     );
     });
 
+    beforeEach(async function () {
+        const crvLpBal = await crvlp.balanceOf(user.address);
+        if(ethers.utils.formatEther(crvLpBal) > 0) {
+            await crvlp.connect(user).transfer(whaleStable.address, crvLpBal);
+        }
+    });
+
 
     it("should zap DAI into 3CRV LP Token", async () => {
         const daiDecimals = await dai.decimals();
@@ -84,11 +90,7 @@ describe("MooCurveZap Unit Tests", function () {
         await mooCurveZap.connect(user).zap(dai.address, weiAmount);
 
         const crvLpBalAfter = await crvlp.balanceOf(user.address);
-        const stableBalAfter = await dai.balanceOf(user.address);
-        
-        console.log("3CRV LP Balance : ", ethers.utils.formatEther(crvLpBalAfter));
-        console.log("Stablecoin Balance : ", ethers.utils.formatUnits(stableBalAfter, daiDecimals));
-
+    
         expect(crvLpBalAfter > crvLpBalBefore).to.equal(true);
     });
 
@@ -104,10 +106,6 @@ describe("MooCurveZap Unit Tests", function () {
         await mooCurveZap.connect(user).zap(usdc.address, weiAmount);
 
         const crvLpBalAfter = await crvlp.balanceOf(user.address);
-        const stableBalAfter = await usdc.balanceOf(user.address);
-
-        console.log("3CRV LP Balance : ", ethers.utils.formatEther(crvLpBalAfter));
-        console.log("Stablecoin Balance : ", ethers.utils.formatUnits(stableBalAfter, usdcDecimals));
 
         expect(crvLpBalAfter > crvLpBalBefore).to.equal(true);
     });
@@ -124,13 +122,8 @@ describe("MooCurveZap Unit Tests", function () {
         await mooCurveZap.connect(user).zap(usdt.address, weiAmount);
 
         const crvLpBalAfter = await crvlp.balanceOf(user.address);
-        const stableBalAfter = await usdt.balanceOf(user.address);
-
-        console.log("3CRV LP Balance : ", ethers.utils.formatEther(crvLpBalAfter));
-        console.log("Stablecoin Balance : ", ethers.utils.formatUnits(stableBalAfter, usdtDecimals));
 
         expect(crvLpBalAfter > crvLpBalBefore).to.equal(true);
-
     });
 
     it("should not be able to zap WAVAX into 3CRV LP Token", async () => {
