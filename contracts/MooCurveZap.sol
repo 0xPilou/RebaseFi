@@ -51,9 +51,9 @@ contract MooCurveZap {
         uint256[3] memory amounts;
         amounts[id] = _amount;
 
-        uint256 minMintAmount = ICurvePool(curve3Pool).calc_token_amount(amounts, true);
+        uint256 minMintAmount = ICurvePool(curve3Pool).calc_token_amount(amounts, true).mul(9900).div(10000);
 
-        ICurvePool(curve3Pool).add_liquidity(amounts, minMintAmount);
+        ICurvePool(curve3Pool).add_liquidity(amounts, minMintAmount, true);
 
         IERC20(curveLP).safeTransfer(msg.sender, IERC20(curveLP).balanceOf(address(this)));
     }
