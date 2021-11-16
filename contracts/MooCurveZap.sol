@@ -27,11 +27,16 @@ contract MooCurveZap {
     constructor(address _curve3Pool, address _beefyVault) {
         require(ICurvePool(_curve3Pool).lp_token() == IBeefyVault(_beefyVault).want(), "Incorrect Parameters");
         curve3Pool = _curve3Pool;        
-        beefyVault = _beefyVault;
-        underlyingTokens[0] = ICurvePool(curve3Pool).underlying_coins(0);     
-        underlyingTokens[1] = ICurvePool(curve3Pool).underlying_coins(1);     
-        underlyingTokens[2] = ICurvePool(curve3Pool).underlying_coins(2);     
-        curveLP = IBeefyVault(_beefyVault).want();   
+        beefyVault = _beefyVault;    
+        curveLP = IBeefyVault(_beefyVault).want();
+        IERC20(curveLP).safeApprove(_beefyVault, 0);
+        IERC20(curveLP).safeApprove(_beefyVault, MAX_INT);
+
+        for(int i = 0; i < 3; i++){
+            underlyingTokens[i] = ICurvePool(_curve3Pool).underlying_coins(i);
+            IERC20(underlyingTokens[i]).safeApprove(_curve3Pool, 0); 
+            IERC20(underlyingTokens[i]).safeApprove(_curve3Pool, MAX_INT);
+        }
     }
  
     function zap(address _tokenToZap, uint256 _amountToZap) external {
@@ -41,12 +46,13 @@ contract MooCurveZap {
             IERC20(_tokenToZap).safeTransferFrom(msg.sender, address(this), _amountToZap);
         }
         _addLiquidityToCurve(_tokenToZap, _amountToZap);
+        _depositToBeefy();
+        IERC20(beefyVault).safeTransfer(msg.sender, IERC20(beefyVault).balanceOf(address(this)));
     }
 
     function _addLiquidityToCurve(address _token, uint256 _amount) internal {
         (bool supported, uint id) = _isUnderlying(_token);
         require(supported, "Unsupported asset");
-        IERC20(_token).safeApprove(curve3Pool, _amount); 
         
         uint256[3] memory amounts;
         amounts[id] = _amount;
@@ -54,8 +60,11 @@ contract MooCurveZap {
         uint256 minMintAmount = ICurvePool(curve3Pool).calc_token_amount(amounts, true).mul(9900).div(10000);
 
         ICurvePool(curve3Pool).add_liquidity(amounts, minMintAmount, true);
+//        IERC20(curveLP).safeTransfer(msg.sender, IERC20(curveLP).balanceOf(address(this)));
+    }
 
-        IERC20(curveLP).safeTransfer(msg.sender, IERC20(curveLP).balanceOf(address(this)));
+    function _depositToBeefy() internal {
+        IBeefyVault(beefyVault).depositAll();
     }
 
     function _isUnderlying(address _token) internal view returns (bool, uint) {
@@ -65,5 +74,20 @@ contract MooCurveZap {
             } 
         }
         return (false, 404);
+    }
+
+    function calculateBestOption(uint256[3] _amounts) returns (uint) {
+        uint256[3] memory results;
+        uint256[3] memory amounts;
+        uint result = 0;
+        for(uint i=0; i<3; i++) {
+            amounts = [0, 0, 0];
+            amounts[i] = _amounts[i];
+            results[i] = ICurvePool(curve3Pool).calc_token_amount(amounts, true);
+            if(results[i] > results[result]){
+                result = i;
+            }
+        }
+        return result;
     }
 }
