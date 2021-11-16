@@ -15,6 +15,7 @@ describe("MooCurveZap Unit Tests", function () {
     const USDTabi = require("../external_abi/avalanche/USDT.json");
     const WAVAXabi = require("../external_abi/avalanche/WAVAX.json");
     const CRVLPabi = require("../external_abi/avalanche/CRVLP.json");
+    const MOOabi = require("../external_abi/avalanche/MOO.json");
 
     /* Addresses */
     const CURVEPOOL = "0x7f90122BF0700F9E7e1F688fe926940E8839F353"; 
@@ -34,7 +35,8 @@ describe("MooCurveZap Unit Tests", function () {
     usdt = new ethers.Contract(USDT, USDTabi, provider);
     wavax = new ethers.Contract(WAVAX, WAVAXabi, provider);
     crvlp = new ethers.Contract(CRVLP, CRVLPabi, provider);
-
+    moo = new ethers.Contract(BEEFYVAULT, MOOabi, provider);
+    
     let mooCurveZap;
     let MooCurveZap;  
 
@@ -71,12 +73,11 @@ describe("MooCurveZap Unit Tests", function () {
     });
 
     beforeEach(async function () {
-        const crvLpBal = await crvlp.balanceOf(user.address);
-        if(ethers.utils.formatEther(crvLpBal) > 0) {
-            await crvlp.connect(user).transfer(whaleStable.address, crvLpBal);
+        const mooBal = await moo.balanceOf(user.address);
+        if(ethers.utils.formatEther(mooBal) > 0) {
+            await moo.connect(user).transfer(whaleStable.address, mooBal);
         }
     });
-
 
     it("should zap DAI into 3CRV LP Token", async () => {
         const daiDecimals = await dai.decimals();
@@ -84,14 +85,14 @@ describe("MooCurveZap Unit Tests", function () {
         const weiAmount = ethers.utils.parseUnits(amount.toString(), daiDecimals);
         await dai.connect(whaleStable).transfer(user.address, weiAmount);
 
-        const crvLpBalBefore = await crvlp.balanceOf(user.address);
+        const mooBalBefore = await moo.balanceOf(user.address);
 
         await dai.connect(user).approve(mooCurveZap.address, weiAmount);
         await mooCurveZap.connect(user).zap(dai.address, weiAmount);
 
-        const crvLpBalAfter = await crvlp.balanceOf(user.address);
+        const mooBalAfter = await moo.balanceOf(user.address);
     
-        expect(crvLpBalAfter > crvLpBalBefore).to.equal(true);
+        expect(mooBalAfter > mooBalBefore).to.equal(true);
     });
 
     it("should zap USDC into 3CRV LP Token", async () => {
@@ -100,14 +101,14 @@ describe("MooCurveZap Unit Tests", function () {
         const weiAmount = ethers.utils.parseUnits(amount.toString(), usdcDecimals);
         await usdc.connect(whaleStable).transfer(user.address, weiAmount);
 
-        const crvLpBalBefore = await crvlp.balanceOf(user.address);
+        const mooBalBefore = await moo.balanceOf(user.address);
 
         await usdc.connect(user).approve(mooCurveZap.address, weiAmount);
         await mooCurveZap.connect(user).zap(usdc.address, weiAmount);
 
-        const crvLpBalAfter = await crvlp.balanceOf(user.address);
+        const mooBalAfter = await moo.balanceOf(user.address);
 
-        expect(crvLpBalAfter > crvLpBalBefore).to.equal(true);
+        expect(mooBalAfter > mooBalBefore).to.equal(true);
     });
 
     it("should zap USDT into 3CRV LP Token", async () => {
@@ -116,14 +117,14 @@ describe("MooCurveZap Unit Tests", function () {
         const weiAmount = ethers.utils.parseUnits(amount.toString(), usdtDecimals);
         await usdt.connect(whaleStable).transfer(user.address, weiAmount);
 
-        const crvLpBalBefore = await crvlp.balanceOf(user.address);
+        const mooBalBefore = await moo.balanceOf(user.address);
 
         await usdt.connect(user).approve(mooCurveZap.address, weiAmount);
         await mooCurveZap.connect(user).zap(usdt.address, weiAmount);
 
-        const crvLpBalAfter = await crvlp.balanceOf(user.address);
+        const mooBalAfter = await moo.balanceOf(user.address);
 
-        expect(crvLpBalAfter > crvLpBalBefore).to.equal(true);
+        expect(mooBalAfter > mooBalBefore).to.equal(true);
     });
 
     it("should not be able to zap WAVAX into 3CRV LP Token", async () => {
