@@ -28,15 +28,20 @@ contract MooCurveZap {
         require(ICurvePool(_curve3Pool).lp_token() == IBeefyVault(_beefyVault).want(), "Incorrect Parameters");
         curve3Pool = _curve3Pool;        
         beefyVault = _beefyVault;    
+        underlyingTokens[0] = ICurvePool(curve3Pool).underlying_coins(0);     
+        underlyingTokens[1] = ICurvePool(curve3Pool).underlying_coins(1);     
+        underlyingTokens[2] = ICurvePool(curve3Pool).underlying_coins(2);   
         curveLP = IBeefyVault(_beefyVault).want();
+
         IERC20(curveLP).safeApprove(_beefyVault, 0);
         IERC20(curveLP).safeApprove(_beefyVault, MAX_INT);
 
-        for(int i = 0; i < 3; i++){
-            underlyingTokens[i] = ICurvePool(_curve3Pool).underlying_coins(i);
-            IERC20(underlyingTokens[i]).safeApprove(_curve3Pool, 0); 
-            IERC20(underlyingTokens[i]).safeApprove(_curve3Pool, MAX_INT);
-        }
+        IERC20(underlyingTokens[0]).safeApprove(_curve3Pool, 0); 
+        IERC20(underlyingTokens[0]).safeApprove(_curve3Pool, MAX_INT);
+        IERC20(underlyingTokens[1]).safeApprove(_curve3Pool, 0); 
+        IERC20(underlyingTokens[1]).safeApprove(_curve3Pool, MAX_INT);
+        IERC20(underlyingTokens[2]).safeApprove(_curve3Pool, 0); 
+        IERC20(underlyingTokens[2]).safeApprove(_curve3Pool, MAX_INT);
     }
  
     function zap(address _tokenToZap, uint256 _amountToZap) external {
@@ -76,12 +81,12 @@ contract MooCurveZap {
         return (false, 404);
     }
 
-    function calculateBestOption(uint256[3] _amounts) returns (uint) {
+    function calculateBestOption(uint256[3] calldata _amounts) external view returns (uint) {
         uint256[3] memory results;
         uint256[3] memory amounts;
         uint result = 0;
         for(uint i=0; i<3; i++) {
-            amounts = [0, 0, 0];
+            amounts = [uint256(0), uint256(0), uint256(0)];
             amounts[i] = _amounts[i];
             results[i] = ICurvePool(curve3Pool).calc_token_amount(amounts, true);
             if(results[i] > results[result]){
