@@ -46,6 +46,7 @@ contract MooCurveZap {
  
     function zap(address _tokenToZap, uint256 _amountToZap) external {
         require(IERC20(_tokenToZap).balanceOf(address(msg.sender)) >= _amountToZap);
+        IERC20(_tokenToZap).safeTransferFrom(msg.sender, address(this), _amountToZap);
         _addLiquidityToCurve(_tokenToZap, _amountToZap);
         _depositToBeefy();
         IERC20(beefyVault).safeTransfer(msg.sender, IERC20(beefyVault).balanceOf(address(this)));
@@ -61,7 +62,6 @@ contract MooCurveZap {
         uint256 minMintAmount = ICurvePool(curve3Pool).calc_token_amount(amounts, true).mul(9900).div(10000);
 
         ICurvePool(curve3Pool).add_liquidity(amounts, minMintAmount, true);
-//        IERC20(curveLP).safeTransfer(msg.sender, IERC20(curveLP).balanceOf(address(this)));
     }
 
     function _depositToBeefy() internal {
