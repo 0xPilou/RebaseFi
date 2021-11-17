@@ -35,6 +35,8 @@ contract MooCurveZap {
 
         IERC20(curveLP).safeApprove(_beefyVault, 0);
         IERC20(curveLP).safeApprove(_beefyVault, MAX_INT);
+        IERC20(curveLP).safeApprove(_curve3Pool, 0);
+        IERC20(curveLP).safeApprove(_curve3Pool, MAX_INT);
 
         IERC20(underlyingTokens[0]).safeApprove(_curve3Pool, 0); 
         IERC20(underlyingTokens[0]).safeApprove(_curve3Pool, MAX_INT);
@@ -77,9 +79,9 @@ contract MooCurveZap {
         require(supported, "Unsupported asset");
 
         uint256 amount = IERC20(curveLP).balanceOf(address(this));
-        uint256 minAmount = ICurvePool(curve3Pool).calc_withdraw_one_coin(amount, id).mul(9900).div(10000);
+        uint256 minAmount = ICurvePool(curve3Pool).calc_withdraw_one_coin(amount, int128(id)).mul(9900).div(10000);
 
-        ICurvePool(curve3Pool).remove_liquidity_one_coin(amount, id, minAmount, true);
+        ICurvePool(curve3Pool).remove_liquidity_one_coin(amount, int128(id), minAmount, true);
     }
 
     function _withdrawFromBeefy(uint256 _amountToWithdraw) internal {
