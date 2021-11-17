@@ -81,7 +81,7 @@ describe("MooCurveZap Unit Tests", function () {
 
     it("should zap DAI into 3CRV LP Token", async () => {
         const daiDecimals = await dai.decimals();
-        const amount = 100;
+        const amount = 300;
         const weiAmount = ethers.utils.parseUnits(amount.toString(), daiDecimals);
         await dai.connect(whaleStable).transfer(user.address, weiAmount);
 
@@ -127,7 +127,87 @@ describe("MooCurveZap Unit Tests", function () {
         expect(mooBalAfter > mooBalBefore).to.equal(true);
     });
 
+    it("should unzap 100 3CRV LP Token in DAI", async () => {
+        const amount = 100;
+        const weiAmount = ethers.utils.parseEther(amount.toString());
+        await moo.connect(whaleStable).transfer(user.address, weiAmount);
+
+
+        const mooBalBefore = await moo.balanceOf(user.address);
+        const daiBalBefore = await dai.balanceOf(user.address);
+
+        await moo.connect(user).approve(mooCurveZap.address, weiAmount);
+        await mooCurveZap.connect(user).unzap(dai.address, weiAmount);
+
+        const mooBalAfter = await moo.balanceOf(user.address);
+        const daiBalAfter = await dai.balanceOf(user.address);
+
+        console.log("DAI Bal Before : ", ethers.utils.formatEther(daiBalBefore.toString()));
+        console.log("DAI Bal After : ", ethers.utils.formatEther(daiBalAfter.toString()));
+
+        expect(mooBalAfter < mooBalBefore).to.equal(true);
+        expect(daiBalAfter > daiBalBefore).to.equal(true);
+    });
+
+    it("should unzap 100 3CRV LP Token in USDC", async () => {
+        const usdcDecimals = await usdc.decimals();
+        const amount = 100;
+        const weiAmount = ethers.utils.parseEther(amount.toString());
+        await moo.connect(whaleStable).transfer(user.address, weiAmount);
+
+
+        const mooBalBefore = await moo.balanceOf(user.address);
+        const usdcBalBefore = await usdc.balanceOf(user.address);
+
+        await moo.connect(user).approve(mooCurveZap.address, weiAmount);
+        await mooCurveZap.connect(user).unzap(usdc.address, weiAmount);
+
+        const mooBalAfter = await moo.balanceOf(user.address);
+        const usdcBalAfter = await usdc.balanceOf(user.address);
+
+        console.log("USDC Bal Before : ", ethers.utils.formatUnits(usdcBalBefore.toString(), usdcDecimals));
+        console.log("USDC Bal After : ", ethers.utils.formatUnits(usdcBalAfter.toString(), usdcDecimals));
+
+        expect(mooBalAfter < mooBalBefore).to.equal(true);
+        expect(usdcBalAfter > usdcBalBefore).to.equal(true);
+    });
+
+    it("should unzap 100 3CRV LP Token in USDT", async () => {
+        const usdtDecimals = await usdt.decimals();
+        const amount = 100;
+        const weiAmount = ethers.utils.parseEther(amount.toString());
+        await moo.connect(whaleStable).transfer(user.address, weiAmount);
+
+
+        const mooBalBefore = await moo.balanceOf(user.address);
+        const usdtBalBefore = await usdt.balanceOf(user.address);
+
+        await moo.connect(user).approve(mooCurveZap.address, weiAmount);
+        await mooCurveZap.connect(user).unzap(usdt.address, weiAmount);
+
+        const mooBalAfter = await moo.balanceOf(user.address);
+        const usdtBalAfter = await usdt.balanceOf(user.address);
+
+        console.log("USDT Bal Before : ", ethers.utils.formatUnits(usdtBalBefore.toString(), usdtDecimals));
+        console.log("USDT Bal After : ", ethers.utils.formatUnits(usdtBalAfter.toString(), usdtDecimals));
+
+        expect(mooBalAfter < mooBalBefore).to.equal(true);
+        expect(usdtBalAfter > usdtBalBefore).to.equal(true);
+    });
+
     it("should not be able to zap WAVAX into 3CRV LP Token", async () => {
+        const amount = 300;
+        const weiAmount = ethers.utils.parseUnits(amount.toString(), daiDecimals);
+        await dai.connect(whaleStable).transfer(user.address, weiAmount);
+
+        const mooBalBefore = await moo.balanceOf(user.address);
+
+        await dai.connect(user).approve(mooCurveZap.address, weiAmount);
+        await mooCurveZap.connect(user).zap(dai.address, weiAmount);
+
+        const mooBalAfter = await moo.balanceOf(user.address);
+    
+        expect(mooBalAfter > mooBalBefore).to.equal(true);
         
     });
 
