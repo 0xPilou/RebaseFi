@@ -8,7 +8,7 @@ import 'openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol';
 import './interfaces/IBeefyVault.sol';
 import './interfaces/ICurvePool.sol';
 
-contract MooCurveZap {
+contract MooCurveZap is Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -20,6 +20,8 @@ contract MooCurveZap {
     address public curveLP;
 
     address[3] public underlyingTokens;
+
+    bool public pauseStatus;
 
     /**
      * @dev Initializes the zapper contract for a given CurvePool and associated BeefyVault
@@ -44,9 +46,12 @@ contract MooCurveZap {
         IERC20(underlyingTokens[1]).safeApprove(_curve3Pool, MAX_INT);
         IERC20(underlyingTokens[2]).safeApprove(_curve3Pool, 0); 
         IERC20(underlyingTokens[2]).safeApprove(_curve3Pool, MAX_INT);
+
+        pauseStatus = false;
     }
  
     function zap(address _tokenToZap, uint256 _amountToZap) external {
+        require(pauseStatus == false, "Contract paused");
         require(IERC20(_tokenToZap).balanceOf(address(msg.sender)) >= _amountToZap);
         IERC20(_tokenToZap).safeTransferFrom(msg.sender, address(this), _amountToZap);
         _addLiquidityToCurve(_tokenToZap, _amountToZap);
@@ -55,6 +60,7 @@ contract MooCurveZap {
     }
 
     function unzap(address _tokenToReceive, uint256 _amountToUnzap) external {
+        require(pauseStatus == false, "Contract paused");
         require(IERC20(beefyVault).balanceOf(address(msg.sender)) >= _amountToUnzap);
         IERC20(beefyVault).safeTransferFrom(msg.sender, address(this), _amountToUnzap);
         _withdrawFromBeefy(_amountToUnzap);
@@ -114,5 +120,25 @@ contract MooCurveZap {
             }
         }
         return result;
+    }
+
+    function pauseZapper() external onlyOwner {
+        IERC20(curveLP).safeApprove(beefyVault, 0);
+        IERC20(curveLP).safeApprove(curve3Pool, 0);
+        IERC20(underlyingTokens[0]).safeApprove(curve3Pool, 0); 
+        IERC20(underlyingTokens[1]).safeApprove(curve3Pool, 0); 
+        IERC20(underlyingTokens[2]).safeApprove(curve3Pool, 0); 
+
+        pauseStatus = true;
+    }
+
+    function unpauseZapper() external onlyOwner {
+        IERC20(curveLP).safeApprove(beefyVault, MAX_INT);
+        IERC20(curveLP).safeApprove(curve3Pool, MAX_INT);
+        IERC20(underlyingTokens[0]).safeApprove(curve3Pool, MAX_INT); 
+        IERC20(underlyingTokens[1]).safeApprove(curve3Pool, MAX_INT); 
+        IERC20(underlyingTokens[2]).safeApprove(curve3Pool, MAX_INT); 
+
+        pauseStatus = false;
     }
 }
