@@ -52,8 +52,16 @@ contract MooCurveZap {
         IERC20(beefyVault).safeTransfer(msg.sender, IERC20(beefyVault).balanceOf(address(this)));
     }
 
+    function unzap(address _tokenToReceive, uint256 _amountToUnzap) external {
+        require(IERC20(beefyVault).balanceOf(address(msg.sender)) >= _amountToUnzap);
+        IERC20(beefyVault).safeTransferFrom(msg.sender, address(this), _amountToUnzap);
+        _withdrawFromBeefy(_amountToUnzap);
+        _removeLiquidityFromCurve(_tokenToReceive);
+        IERC20(_tokenToReceive).safeTransfer(msg.sender, IERC20(_tokenToReceive).balanceOf(address(this)));
+    }
+
     function _addLiquidityToCurve(address _token, uint256 _amount) internal {
-        (bool supported, uint id) = _isUnderlying(_token);
+        (bool supported, uint128 id) = _isUnderlying(_token);
         require(supported, "Unsupported asset");
         
         uint256[3] memory amounts;
@@ -64,12 +72,26 @@ contract MooCurveZap {
         ICurvePool(curve3Pool).add_liquidity(amounts, minMintAmount, true);
     }
 
+    function _removeLiquidityFromCurve(address _tokenToReceive) internal {
+        (bool supported, uint128 id) = _isUnderlying(_tokenToReceive);
+        require(supported, "Unsupported asset");
+
+        uint256 amount = IERC20(curveLP).balanceOf(address(this));
+        uint256 minAmount = ICurvePool(curve3Pool).calc_withdraw_one_coin(amount, id).mul(9900).div(10000);
+
+        ICurvePool(curve3Pool).remove_liquidity_one_coin(amount, id, minAmount, true);
+    }
+
+    function _withdrawFromBeefy(uint256 _amountToWithdraw) internal {
+        IBeefyVault(beefyVault).withdraw(_amountToWithdraw);
+    }
+
     function _depositToBeefy() internal {
         IBeefyVault(beefyVault).depositAll();
     }
 
-    function _isUnderlying(address _token) internal view returns (bool, uint) {
-        for(uint i=0; i<3; i++) {
+    function _isUnderlying(address _token) internal view returns (bool, uint128) {
+        for(uint128 i=0; i<3; i++) {
             if(_token == underlyingTokens[i]) {
                 return (true, i);
             } 
