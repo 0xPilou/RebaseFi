@@ -62,11 +62,11 @@ describe("MooCurveZap Unit Tests", function () {
     whaleStable = await ethers.getSigner("0x339Dab47bdD20b4c05950c4306821896CFB1Ff1A");
    
     // Define the signers required for the tests
-    [user, nonOwner, _] = await ethers.getSigners();   
+    [deployer, user, nonOwner, _] = await ethers.getSigners();   
 
     // Deploy UniV2OptimizerFactory
     MooCurveZap = await ethers.getContractFactory("MooCurveZap");
-    mooCurveZap = await MooCurveZap.connect(user).deploy(
+    mooCurveZap = await MooCurveZap.connect(deployer).deploy(
         CURVEPOOL,
         BEEFYVAULT
     );
@@ -81,7 +81,7 @@ describe("MooCurveZap Unit Tests", function () {
 
     it("should zap DAI into 3CRV LP Token", async () => {
         const daiDecimals = await dai.decimals();
-        const amount = 300;
+        const amount = 500;
         const weiAmount = ethers.utils.parseUnits(amount.toString(), daiDecimals);
         await dai.connect(whaleStable).transfer(user.address, weiAmount);
 
@@ -142,15 +142,11 @@ describe("MooCurveZap Unit Tests", function () {
         const mooBalAfter = await moo.balanceOf(user.address);
         const daiBalAfter = await dai.balanceOf(user.address);
 
-        console.log("DAI Bal Before : ", ethers.utils.formatEther(daiBalBefore.toString()));
-        console.log("DAI Bal After : ", ethers.utils.formatEther(daiBalAfter.toString()));
-
         expect(mooBalAfter < mooBalBefore).to.equal(true);
         expect(daiBalAfter > daiBalBefore).to.equal(true);
     });
 
     it("should unzap 100 3CRV LP Token in USDC", async () => {
-        const usdcDecimals = await usdc.decimals();
         const amount = 100;
         const weiAmount = ethers.utils.parseEther(amount.toString());
         await moo.connect(whaleStable).transfer(user.address, weiAmount);
@@ -165,15 +161,11 @@ describe("MooCurveZap Unit Tests", function () {
         const mooBalAfter = await moo.balanceOf(user.address);
         const usdcBalAfter = await usdc.balanceOf(user.address);
 
-        console.log("USDC Bal Before : ", ethers.utils.formatUnits(usdcBalBefore.toString(), usdcDecimals));
-        console.log("USDC Bal After : ", ethers.utils.formatUnits(usdcBalAfter.toString(), usdcDecimals));
-
         expect(mooBalAfter < mooBalBefore).to.equal(true);
         expect(usdcBalAfter > usdcBalBefore).to.equal(true);
     });
 
     it("should unzap 100 3CRV LP Token in USDT", async () => {
-        const usdtDecimals = await usdt.decimals();
         const amount = 100;
         const weiAmount = ethers.utils.parseEther(amount.toString());
         await moo.connect(whaleStable).transfer(user.address, weiAmount);
@@ -188,30 +180,84 @@ describe("MooCurveZap Unit Tests", function () {
         const mooBalAfter = await moo.balanceOf(user.address);
         const usdtBalAfter = await usdt.balanceOf(user.address);
 
-        console.log("USDT Bal Before : ", ethers.utils.formatUnits(usdtBalBefore.toString(), usdtDecimals));
-        console.log("USDT Bal After : ", ethers.utils.formatUnits(usdtBalAfter.toString(), usdtDecimals));
-
         expect(mooBalAfter < mooBalBefore).to.equal(true);
         expect(usdtBalAfter > usdtBalBefore).to.equal(true);
     });
 
-    it("should not be able to zap WAVAX into 3CRV LP Token", async () => {
-        const amount = 300;
-        const weiAmount = ethers.utils.parseUnits(amount.toString(), daiDecimals);
-        await dai.connect(whaleStable).transfer(user.address, weiAmount);
-
-        const mooBalBefore = await moo.balanceOf(user.address);
-
-        await dai.connect(user).approve(mooCurveZap.address, weiAmount);
-        await mooCurveZap.connect(user).zap(dai.address, weiAmount);
-
-        const mooBalAfter = await moo.balanceOf(user.address);
-    
-        expect(mooBalAfter > mooBalBefore).to.equal(true);
-        
-    });
+//    it("should not be able to zap WAVAX into 3CRV LP Token", async () => {
+//        const amount = 300;
+//        const weiAmount = ethers.utils.parseUnits(amount.toString(), daiDecimals);
+//        await dai.connect(whaleStable).transfer(user.address, weiAmount);
+//
+//        const mooBalBefore = await moo.balanceOf(user.address);
+//
+//        await dai.connect(user).approve(mooCurveZap.address, weiAmount);
+//        await mooCurveZap.connect(user).zap(dai.address, weiAmount);
+//
+//        const mooBalAfter = await moo.balanceOf(user.address);
+//    
+//        expect(mooBalAfter > mooBalBefore).to.equal(true);
+//        
+//    });
 
     it("should not be able to zap more token than the balance allow", async () => {
+    });
+
+    it("should pause the zapper contract", async () => {
+        await truffleAssert.reverts(mooCurveZap.connect(user).pauseZapper());
+
+        const pauseStatusBefore = await mooCurveZap.pauseStatus();
+
+        await mooCurveZap.connect(deployer).pauseZapper();
+
+        const pauseStatusAfter = await mooCurveZap.pauseStatus();
+
+        expect(pauseStatusBefore).to.equal(false);
+        expect(pauseStatusAfter).to.equal(true);
+
+        const amount = 100;
+        const weiAmount = ethers.utils.parseEther(amount.toString());
+        await moo.connect(whaleStable).transfer(user.address, weiAmount);
+        await dai.connect(whaleStable).transfer(user.address, weiAmount);
+
+        await dai.connect(user).approve(mooCurveZap.address, weiAmount);
+        await moo.connect(user).approve(mooCurveZap.address, weiAmount);
+
+        await truffleAssert.reverts(mooCurveZap.connect(user).zap(dai.address, weiAmount), "Contract paused");
+        await truffleAssert.reverts(mooCurveZap.connect(user).unzap(dai.address, weiAmount), "Contract paused");
+    });
+
+    it("should unpause the zapper contract", async () => {
+        await truffleAssert.reverts(mooCurveZap.connect(user).unpauseZapper());
+
+        const pauseStatusBefore = await mooCurveZap.pauseStatus();
+
+        await mooCurveZap.connect(deployer).unpauseZapper();
+
+        const pauseStatusAfter = await mooCurveZap.pauseStatus();
+
+        expect(pauseStatusBefore).to.equal(true);
+        expect(pauseStatusAfter).to.equal(false);
+
+        const amount = 100;
+        const weiAmount = ethers.utils.parseEther(amount.toString());
+        await moo.connect(whaleStable).transfer(user.address, weiAmount);
+        await dai.connect(whaleStable).transfer(user.address, weiAmount);
+
+        await dai.connect(user).approve(mooCurveZap.address, weiAmount);
+        await moo.connect(user).approve(mooCurveZap.address, weiAmount);
+
+        const mooBalBefore = await moo.balanceOf(user.address);
+        await mooCurveZap.connect(user).zap(dai.address, weiAmount);
+        const mooBalAfter = await moo.balanceOf(user.address);
+        expect(mooBalAfter > mooBalBefore).to.equal(true, "DAI zap failed");
+
+        daiBalBefore = await dai.balanceOf(user.address);
+        await mooCurveZap.connect(user).unzap(dai.address, weiAmount);
+        daiBalAfter = await dai.balanceOf(user.address);
+        expect(daiBalAfter > daiBalBefore).to.equal(true, "Unzap failed");
+
+
     });
 });
 
