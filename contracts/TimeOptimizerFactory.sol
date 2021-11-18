@@ -14,12 +14,14 @@ contract TimeOptimizerFactory {
     /* Create an Optimizer for the user */
     function createTimeOptimizer(
         address _timeStakingAddr,
-        address _uniV2RouterAddr
-    ) external returns(address newUniV2Optimizer) {
+        address _uniV2RouterAddr,
+        address _mooCurveZapAddr
+    ) external returns(address) {
         
         TimeOptimizer timeOptimizer = new TimeOptimizer(
             _timeStakingAddr,
-            _uniV2RouterAddr
+            _uniV2RouterAddr,
+            _mooCurveZapAddr
         );
         /* Register the newly created optimizer address to the contract storage */
         timeOptimizers.push(address(timeOptimizer));

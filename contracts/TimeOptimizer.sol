@@ -4,8 +4,10 @@ import 'openzeppelin-solidity/contracts/utils/math/SafeMath.sol';
 import 'openzeppelin-solidity/contracts/utils/Context.sol';
 import 'openzeppelin-solidity/contracts/access/Ownable.sol';
 import 'openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol';
+
 import './interfaces/ITimeStaking.sol';
 import './interfaces/IUniswapV2Router.sol';
+import './interfaces/IMooCurveZap.sol';
 
 contract TimeOptimizer is Ownable {
     using SafeERC20 for IERC20;
@@ -28,6 +30,7 @@ contract TimeOptimizer is Ownable {
      */
     address public timeStakingAddr;
     address public uniV2RouterAddr;
+    address public mooCurveZapAddr;
     address public parentFactory;
 
     /**
@@ -35,10 +38,12 @@ contract TimeOptimizer is Ownable {
      */
     constructor(
         address _timeStakingAddr,
-        address _uniV2RouterAddr
+        address _uniV2RouterAddr,
+        address _mooCurveZapAddr
     ) { 
         timeStakingAddr = _timeStakingAddr;
         uniV2RouterAddr = _uniV2RouterAddr;
+        mooCurveZapAddr = _mooCurveZapAddr;
         parentFactory = msg.sender;
 
         MEMO = ITimeStaking(_timeStakingAddr).Memories();
@@ -67,23 +72,12 @@ contract TimeOptimizer is Ownable {
         require(_basisPoint <= 10000, "Incorrect Basis Point parameter");
 
         uint256 profit = (IERC20(MEMO).balanceOf(address(this))).sub(mum);
-        uint256 amountToReinvest = profit.mul(_basisPoint).div(10000);
+        uint256 amountToSwap = profit.mul(_basisPoint).div(10000);
 
-        ITimeStaking(timeStakingAddr).unstake(amountToReinvest, true);
+        ITimeStaking(timeStakingAddr).unstake(amountToSwap, true);
         mum = IERC20(MEMO).balanceOf(address(this));
-
-        if(IERC20(TIME).balanceOf(address(this)) > 0){
-            address[] memory timeToDesiredToken = new address[](2);
-            timeToDesiredToken[0] = TIME;
-            timeToDesiredToken[1] = _desiredToken;
-            IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
-                IERC20(TIME).balanceOf(address(this)),
-                0,
-                timeToDesiredToken,
-                msg.sender,
-                block.timestamp.add(600)
-            );
-        }     
+        _swapToken(_desiredToken);
+        _reinvestStable(_desiredToken);
     }
     
     function recoverERC20(address _ERC20) external onlyOwner {
@@ -94,6 +88,29 @@ contract TimeOptimizer is Ownable {
 
     function setUniV2Router(address _uniV2Router) external onlyOwner {
         uniV2RouterAddr = _uniV2Router;
+    }
+
+    function _swapToken(address _desiredToken) internal {
+        if(IERC20(TIME).balanceOf(address(this)) > 0){
+            address[] memory timeToDesiredToken = new address[](2);
+            timeToDesiredToken[0] = TIME;
+            timeToDesiredToken[1] = _desiredToken;
+            IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
+                IERC20(TIME).balanceOf(address(this)),
+                0,
+                timeToDesiredToken,
+                address(this),
+                block.timestamp.add(600)
+            );
+        }
+    }
+
+    function _reinvestStable(address _tokenToInvest) internal {
+        uint256 amountToInvest = IERC20(_tokenToInvest).balanceOf(address(this));
+        IERC20(_tokenToInvest).approve(mooCurveZapAddr, amountToInvest);
+        IMooCurveZap(mooCurveZapAddr).zap(_tokenToInvest, amountToInvest);
+        address mooToken = IMooCurveZap(mooCurveZapAddr).beefyVault();
+        IERC20(mooToken).safeTransfer(msg.sender, IERC20(mooToken).balanceOf(address(this)));
     }
     
 }    
