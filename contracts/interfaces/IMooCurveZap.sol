@@ -5,7 +5,7 @@ interface IMooCurveZap {
     function curve3Pool() external view returns (address);
     function beefyVault() external view returns (address);
     function curveLP() external view returns (address);
-    function underlyingTokens() external view returns (address[3]);
+    function underlyingTokens() external view returns (address[3] memory);
 
     function zap(address _tokenToZap, uint256 _amountToZap) external;
 
