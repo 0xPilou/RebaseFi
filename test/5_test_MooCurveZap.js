@@ -64,7 +64,7 @@ describe("MooCurveZap Unit Tests", function () {
     // Define the signers required for the tests
     [deployer, user, nonOwner, _] = await ethers.getSigners();   
 
-    // Deploy UniV2OptimizerFactory
+    // Deploy MooCurveZap
     MooCurveZap = await ethers.getContractFactory("MooCurveZap");
     mooCurveZap = await MooCurveZap.connect(deployer).deploy(
         CURVEPOOL,
