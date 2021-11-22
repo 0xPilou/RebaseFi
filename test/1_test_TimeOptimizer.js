@@ -11,14 +11,23 @@ describe("TimeOptimizer Unit Tests", function () {
     this.timeout(40000);
     
     /* ABIs */
-    const MEMOabi = require("../external_abi/MEMO.json");   
-    const WETHabi = require("../external_abi/WAVAX.json");
+    const MEMOabi = require("../external_abi/avalanche/MEMO.json");   
+    const WETHabi = require("../external_abi/avalanche/WAVAX.json");
+    const MOOabi = require("../external_abi/avalanche/MOO.json");
+    const DAIabi = require("../external_abi/avalanche/DAI.json");
+    const USDCabi = require("../external_abi/avalanche/USDC.json");
+
 
     /* Addresses */
     const MEMO = "0x136acd46c134e8269052c62a67042d6bdedde3c9"; 
     const WETH = "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7";
+    const DAI = "0xd586E7F844cEa2F87f50152665BCbc2C279D8d70";
+    const USDC = "0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664";
+
     const JOEROUTER = "0x60aE616a2155Ee3d9A68541Ba4544862310933d4"; 
     const TIMESTAKING = "0x4456B87Af11e87E329AB7d7C7A246ed1aC2168B9";
+    const CURVEPOOL = "0x7f90122BF0700F9E7e1F688fe926940E8839F353"; 
+    const BEEFYVAULT = "0x79A44dc13e5863Cf4AB36ab13e038A5F16861Abc";
 
     /* Provider */
     const provider = new ethers.providers.JsonRpcProvider();   
@@ -26,9 +35,15 @@ describe("TimeOptimizer Unit Tests", function () {
     // Instantiating the existing mainnet fork contracts
     weth = new ethers.Contract(WETH, WETHabi, provider);
     memo = new ethers.Contract(MEMO, MEMOabi, provider);
+    moo = new ethers.Contract(BEEFYVAULT, MOOabi, provider);
+    dai = new ethers.Contract(DAI, DAIabi, provider);
+    usdc = new ethers.Contract(USDC, USDCabi, provider);
+
 
     let timeOptimizer;
     let TimeOptimizer;  
+    let mooCurveZap;
+    let MooCurveZap;  
 
     before(async function () {
 
@@ -58,13 +73,21 @@ describe("TimeOptimizer Unit Tests", function () {
     whaleWETH = await ethers.getSigner("0x91F83E3d6C37908454687517E748555E7ad0fe53");
    
     // Define the signers required for the tests
-    [user, nonOwner, _] = await ethers.getSigners();   
+    [user, mooDeployer, nonOwner, _] = await ethers.getSigners();   
 
-    // Deploy UniV2OptimizerFactory
+    // Deploy MooCurveZap contract
+    MooCurveZap = await ethers.getContractFactory("MooCurveZap");
+    mooCurveZap = await MooCurveZap.connect(mooDeployer).deploy(
+        CURVEPOOL,
+        BEEFYVAULT
+    );
+
+    // Deploy TimeOptimizer contract
     TimeOptimizer = await ethers.getContractFactory("TimeOptimizer");
     timeOptimizer = await TimeOptimizer.connect(user).deploy(
         TIMESTAKING,
-        JOEROUTER
+        JOEROUTER, 
+        mooCurveZap.address
     );
 
     const memoDecimals = await memo.decimals();
@@ -98,19 +121,19 @@ describe("TimeOptimizer Unit Tests", function () {
       await rebase();
     });
 
-    it("should reinvest 50% of the rebase in WETH", async () => {
+    it("should reinvest 50% of the rebase in DAI", async () => {
       const basisPoint = 5000;
 
-      const wethBalBefore = await weth.balanceOf(user.address);
+      const mooBalBefore = await moo.balanceOf(user.address);
       const timeOptiBalBefore = await memo.balanceOf(timeOptimizer.address);
       const mumBefore = await timeOptimizer.mum();
 
-      await timeOptimizer.connect(user).reinvest(weth.address, basisPoint);
+      await timeOptimizer.connect(user).reinvest(dai.address, basisPoint);
 
-      const wethBalAfter = await weth.balanceOf(user.address);
+      const mooBalAfter = await moo.balanceOf(user.address);
       const timeOptiBalAfter = await memo.balanceOf(timeOptimizer.address);
 
-      expect(wethBalBefore < wethBalAfter).to.equal(true)
+      expect(mooBalBefore < mooBalAfter).to.equal(true)
       expect(timeOptiBalAfter).to.equal(timeOptiBalBefore.sub(mumBefore).mul(basisPoint).div(10000).add(mumBefore))
 
     });
