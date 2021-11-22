@@ -24,6 +24,7 @@ contract TimeOptimizer is Ownable {
      */    
     address public MEMO;
     address public TIME;
+    address public WETH = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
 
     /**
      * @dev Interfacing contracts addresses
@@ -91,18 +92,28 @@ contract TimeOptimizer is Ownable {
     }
 
     function _swapToken(address _desiredToken) internal {
-        if(IERC20(TIME).balanceOf(address(this)) > 0){
-            address[] memory timeToDesiredToken = new address[](2);
-            timeToDesiredToken[0] = TIME;
-            timeToDesiredToken[1] = _desiredToken;
-            IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
-                IERC20(TIME).balanceOf(address(this)),
-                0,
-                timeToDesiredToken,
-                address(this),
-                block.timestamp.add(600)
-            );
-        }
+        require(IERC20(TIME).balanceOf(address(this)) > 0);
+        address[] memory timeToWeth = new address[](2);
+        timeToWeth[0] = TIME;
+        timeToWeth[1] = WETH;
+        IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
+            IERC20(TIME).balanceOf(address(this)),
+            0,
+            timeToWeth,
+            address(this),
+            block.timestamp.add(600)
+        );
+        address[] memory wethToDesiredToken = new address[](2);
+        wethToDesiredToken[0] = WETH;
+        wethToDesiredToken[1] = _desiredToken;
+        IERC20(WETH).safeApprove(uniV2RouterAddr, MAX_INT);        
+        IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
+            IERC20(WETH).balanceOf(address(this)),
+            0,
+            wethToDesiredToken,
+            address(this),
+            block.timestamp.add(600)
+        );
     }
 
     function _reinvestStable(address _tokenToInvest) internal {
