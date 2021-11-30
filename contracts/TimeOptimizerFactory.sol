@@ -8,8 +8,8 @@ contract TimeOptimizerFactory {
     /* Array of addresses of all existing TimeOptimizer created by the Factory */
     address[] public timeOptimizers;
    
-    /* Mapping storing the optimizers addresses of a given user */
-    mapping(address => address[]) public timeOptimizerByOwner; 
+    /* Mapping storing the optimizer address of a given user */
+    mapping(address => address) public timeOptimizerByOwner; 
 
     /* Create an Optimizer for the user */
     function createTimeOptimizer(
@@ -17,6 +17,7 @@ contract TimeOptimizerFactory {
         address _uniV2RouterAddr,
         address _mooCurveZapAddr
     ) external returns(address) {
+        require(timeOptimizerByOwner[msg.sender] == address(0), "User already has an Optimizer");
         
         TimeOptimizer timeOptimizer = new TimeOptimizer(
             _timeStakingAddr,
@@ -27,7 +28,7 @@ contract TimeOptimizerFactory {
         timeOptimizers.push(address(timeOptimizer));
 
         /* Register the newly created optimizer address for the given user */
-        timeOptimizerByOwner[msg.sender].push(address(timeOptimizer));
+        timeOptimizerByOwner[msg.sender] = address(timeOptimizer);
 
         /* Transfer the Optimizer ownership to the user */
         timeOptimizer.transferOwnership(msg.sender);
@@ -39,7 +40,7 @@ contract TimeOptimizerFactory {
         return timeOptimizers.length;
     } 
     
-    function getOwnerOptimizers(address _owner) external view returns(address[] memory) {
+    function getOwnerOptimizer(address _owner) external view returns(address) {
         return timeOptimizerByOwner[_owner];
     }
 }
