@@ -5,7 +5,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const truffleAssert = require('truffle-assertions');
 
-// npx hardhat test test\1_test_TimeOptimizer.js
+// npx hardhat test test\1_test_TimeOptimizer.js --network localhost
 
 describe("TimeOptimizer Unit Tests", function () {  
     this.timeout(40000);
@@ -179,6 +179,25 @@ describe("TimeOptimizer Unit Tests", function () {
 
       // Assertion : Transaction should revert as the caller is not the owner of the contract
       await truffleAssert.reverts(timeOptimizer.connect(nonOwner).recoverERC20(weth.address));
+  });
+
+  it("should withdraw MEMO Token from the TimeOptimizer Contract", async () => {
+    
+    const amount = await memo.balanceOf(timeOptimizer.address);    
+    const userBalBefore = await memo.balanceOf(user.address);    
+
+    await timeOptimizer.connect(user).withdraw(amount);    
+
+    const timeOptBalance = await memo.balanceOf(timeOptimizer.address);
+    const userBalAfter = await memo.balanceOf(user.address);    
+
+    const mum = await timeOptimizer.mum();    
+
+    expect(amount > timeOptBalance).to.equal(true);
+    expect(userBalBefore < userBalAfter).to.equal(true);
+    expect(mum).to.equal(0);
+      
+    await rebase();
   });
 
 });
