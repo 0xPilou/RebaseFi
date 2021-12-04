@@ -11,11 +11,19 @@ Addresses of the smart contracts involved in strategy
 #### **Beefy Vault (Curve Aave 3pool)**
 0x79A44dc13e5863Cf4AB36ab13e038A5F16861Abc
 
+#### **Curve 3crypto**
+0xB755B949C126C04e0348DD881a5cF55d424742B2
+
+#### **Beefy Vault (Curve 3crypto)**
+0xe1a8EeA58D63Ea64d00365531D266C2AD1f62FC4
+
 #### **Time Staking**
 0x4456B87Af11e87E329AB7d7C7A246ed1aC2168B9
 
 #### **Trader Joe Router**
 0x60aE616a2155Ee3d9A68541Ba4544862310933d4
+
+
 
 ### **Tokens**
 Addresses of the token involved in strategy 
@@ -31,6 +39,12 @@ Addresses of the token involved in strategy
 
 #### **BEEFY CURVE 3POOL LP**
 0x79A44dc13e5863Cf4AB36ab13e038A5F16861Abc
+
+#### **CURVE 3CRYPTO LP**
+0x1daB6560494B04473A0BE3E7D83CF3Fdf3a51828
+
+#### **BEEFY CURVE 3CRYPTO LP**
+0xe1a8EeA58D63Ea64d00365531D266C2AD1f62FC4
 
 #### **USDT.e**
 0xc7198437980c041c805A1EDcbA50c1Ce5db95118
