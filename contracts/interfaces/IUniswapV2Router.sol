@@ -1,6 +1,8 @@
 pragma solidity ^0.8.0;
 
 interface IUniswapV2Router {
+    function factory() external view returns (address);
+
     function addLiquidity(
         address tokenA,
         address tokenB,
@@ -29,4 +31,9 @@ interface IUniswapV2Router {
         address to, 
         uint deadline
     ) external returns (uint[] memory amounts);
+
+    function getAmountsOut(
+        uint amountIn,
+        address[] calldata path
+    ) external view returns (uint[] memory amounts);
 }
