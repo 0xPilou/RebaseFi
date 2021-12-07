@@ -22,15 +22,15 @@ contract TimeOptimizer is Ownable {
     /**
      * @dev Tokens addresses
      */    
-    address public MEMO;
-    address public TIME;
+    address public MEMO = 0x136acd46c134e8269052c62a67042d6bdedde3c9;
+    address public TIME = 0xb54f16fB19478766A268F172C9480f8da1a7c9C3;
     address public WETH = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
 
     /**
      * @dev Interfacing contracts addresses
      */
-    address public timeStakingAddr;
-    address public uniV2RouterAddr;
+    address public timeStakingAddr = 0x4456B87Af11e87E329AB7d7C7A246ed1aC2168B9;
+    address public uniV2RouterAddr = 0x60aE616a2155Ee3d9A68541Ba4544862310933d4;
     address public mooCurveZapAddr;
     address public parentFactory;
 
@@ -38,22 +38,15 @@ contract TimeOptimizer is Ownable {
      * @dev Initializes the strategy for the given protocol
      */
     constructor(
-        address _timeStakingAddr,
-        address _uniV2RouterAddr,
         address _mooCurveZapAddr
     ) { 
-        timeStakingAddr = _timeStakingAddr;
-        uniV2RouterAddr = _uniV2RouterAddr;
         mooCurveZapAddr = _mooCurveZapAddr;
         parentFactory = msg.sender;
 
-        MEMO = ITimeStaking(_timeStakingAddr).Memories();
-        TIME = ITimeStaking(_timeStakingAddr).Time();
-
-        IERC20(MEMO).safeApprove(_timeStakingAddr, 0);
-        IERC20(MEMO).safeApprove(_timeStakingAddr, MAX_INT);
-        IERC20(TIME).safeApprove(_uniV2RouterAddr, 0);
-        IERC20(TIME).safeApprove(_uniV2RouterAddr, MAX_INT);        
+        IERC20(MEMO).safeApprove(timeStakingAddr, 0);
+        IERC20(MEMO).safeApprove(timeStakingAddr, MAX_INT);
+        IERC20(TIME).safeApprove(uniV2RouterAddr, 0);
+        IERC20(TIME).safeApprove(uniV2RouterAddr, MAX_INT);        
     }
 
     function deposit(uint256 _amount) external onlyOwner {
@@ -68,7 +61,20 @@ contract TimeOptimizer is Ownable {
         mum = IERC20(MEMO).balanceOf(address(this));
     }
 
-    function reinvest(address _desiredToken, uint256 _basisPoint) external onlyOwner {
+    function reinvestInToken(address _desiredToken, uint256 _basisPoint) external onlyOwner {
+        require(_desiredToken != MEMO && _desiredToken != TIME, "Cannot reinvest into MEMO or TIME");
+        require(_basisPoint <= 10000, "Incorrect Basis Point parameter");
+
+        uint256 profit = (IERC20(MEMO).balanceOf(address(this))).sub(mum);
+        uint256 amountToSwap = profit.mul(_basisPoint).div(10000);
+
+        ITimeStaking(timeStakingAddr).unstake(amountToSwap, true);
+        mum = IERC20(MEMO).balanceOf(address(this));
+        _swapToken(_desiredToken);
+        IERC20(_desiredToken).safeTransfer(msg.sender, IERC20(_desiredToken).balanceOf(address(this)));
+    }
+
+    function reinvestInProduct(address _desiredToken, uint256 _basisPoint) external onlyOwner {
         require(_desiredToken != MEMO, "Cannot reinvest into MEMO");
         require(_basisPoint <= 10000, "Incorrect Basis Point parameter");
 
@@ -78,7 +84,7 @@ contract TimeOptimizer is Ownable {
         ITimeStaking(timeStakingAddr).unstake(amountToSwap, true);
         mum = IERC20(MEMO).balanceOf(address(this));
         _swapToken(_desiredToken);
-        _reinvestStable(_desiredToken);
+        _reinvestInMooCurve(_desiredToken);
     }
     
     function recoverERC20(address _ERC20) external onlyOwner {
@@ -116,7 +122,7 @@ contract TimeOptimizer is Ownable {
         );
     }
 
-    function _reinvestStable(address _tokenToInvest) internal {
+    function _reinvestInMooCurve(address _tokenToInvest) internal {
         uint256 amountToInvest = IERC20(_tokenToInvest).balanceOf(address(this));
         IERC20(_tokenToInvest).approve(mooCurveZapAddr, amountToInvest);
         IMooCurveZap(mooCurveZapAddr).zap(_tokenToInvest, amountToInvest);
