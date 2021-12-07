@@ -22,7 +22,7 @@ contract TimeOptimizer is Ownable {
     /**
      * @dev Tokens addresses
      */    
-    address public MEMO = 0x136acd46c134e8269052c62a67042d6bdedde3c9;
+    address public MEMO = 0x136Acd46C134E8269052c62A67042D6bDeDde3C9;
     address public TIME = 0xb54f16fB19478766A268F172C9480f8da1a7c9C3;
     address public WETH = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
 
