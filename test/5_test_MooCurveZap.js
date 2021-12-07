@@ -78,7 +78,7 @@ describe("MooCurveZap Unit Tests", function () {
             await moo.connect(user).transfer(whaleStable.address, mooBal);
         }
     });
-
+    
     it("should zap DAI into 3CRV LP Token", async () => {
         const daiDecimals = await dai.decimals();
         const amount = 500;
@@ -184,21 +184,7 @@ describe("MooCurveZap Unit Tests", function () {
         expect(usdtBalAfter > usdtBalBefore).to.equal(true);
     });
 
-//    it("should not be able to zap WAVAX into 3CRV LP Token", async () => {
-//        const amount = 300;
-//        const weiAmount = ethers.utils.parseUnits(amount.toString(), daiDecimals);
-//        await dai.connect(whaleStable).transfer(user.address, weiAmount);
-//
-//        const mooBalBefore = await moo.balanceOf(user.address);
-//
-//        await dai.connect(user).approve(mooCurveZap.address, weiAmount);
-//        await mooCurveZap.connect(user).zap(dai.address, weiAmount);
-//
-//        const mooBalAfter = await moo.balanceOf(user.address);
-//    
-//        expect(mooBalAfter > mooBalBefore).to.equal(true);
-//        
-//    });
+
 
     it("should not be able to zap more token than the balance allow", async () => {
     });
@@ -258,6 +244,16 @@ describe("MooCurveZap Unit Tests", function () {
         expect(daiBalAfter > daiBalBefore).to.equal(true, "Unzap failed");
 
 
+    });
+
+
+    it("should calculate the best deposit option", async () => {
+
+        const amount = 100;
+        const weiAmount = ethers.utils.parseEther(amount.toString());
+
+        const result = await mooCurveZap.calculateBestOption(WAVAX, weiAmount);        
+        console.log(result.toString());
     });
 });
 
