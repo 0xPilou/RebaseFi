@@ -49,7 +49,7 @@ describe("MooCurveZap Unit Tests", function () {
           {
             forking: {
               jsonRpcUrl: `https://api.avax.network/ext/bc/C/rpc`,
-              blockNumber:6902000
+              blockNumber:7968440
             },
           },
         ],
@@ -57,9 +57,15 @@ describe("MooCurveZap Unit Tests", function () {
 
     await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: ["0x339Dab47bdD20b4c05950c4306821896CFB1Ff1A"],
+        params: ["0xb6E825727DaE1e3886639FAa29bAcf623E8Ed91E"],
       });
-    whaleStable = await ethers.getSigner("0x339Dab47bdD20b4c05950c4306821896CFB1Ff1A");
+    whaleStable = await ethers.getSigner("0xb6E825727DaE1e3886639FAa29bAcf623E8Ed91E");
+
+    await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: ["0x2f93524B327100Fba3dc685204f94c7A86C28A8B"],
+      });
+    whaleWavax = await ethers.getSigner("0x2f93524B327100Fba3dc685204f94c7A86C28A8B");
    
     // Define the signers required for the tests
     [deployer, user, nonOwner, _] = await ethers.getSigners();   
@@ -78,7 +84,7 @@ describe("MooCurveZap Unit Tests", function () {
             await moo.connect(user).transfer(whaleStable.address, mooBal);
         }
     });
-    
+
     it("should zap DAI into 3CRV LP Token", async () => {
         const daiDecimals = await dai.decimals();
         const amount = 500;
@@ -121,6 +127,21 @@ describe("MooCurveZap Unit Tests", function () {
 
         await usdt.connect(user).approve(mooCurveZap.address, weiAmount);
         await mooCurveZap.connect(user).zap(usdt.address, weiAmount);
+
+        const mooBalAfter = await moo.balanceOf(user.address);
+
+        expect(mooBalAfter > mooBalBefore).to.equal(true);
+    });
+
+    it("should zap WAVAX into 3CRV LP Token", async () => {
+        const amount = 100;
+        const weiAmount = ethers.utils.parseEther(amount.toString());
+        await wavax.connect(whaleWavax).transfer(user.address, weiAmount);
+
+        const mooBalBefore = await moo.balanceOf(user.address);
+
+        await wavax.connect(user).approve(mooCurveZap.address, weiAmount);
+        await mooCurveZap.connect(user).zap(wavax.address, weiAmount);
 
         const mooBalAfter = await moo.balanceOf(user.address);
 
@@ -242,18 +263,6 @@ describe("MooCurveZap Unit Tests", function () {
         await mooCurveZap.connect(user).unzap(dai.address, weiAmount);
         daiBalAfter = await dai.balanceOf(user.address);
         expect(daiBalAfter > daiBalBefore).to.equal(true, "Unzap failed");
-
-
-    });
-
-
-    it("should calculate the best deposit option", async () => {
-
-        const amount = 100;
-        const weiAmount = ethers.utils.parseEther(amount.toString());
-
-        const result = await mooCurveZap.calculateBestOption(WAVAX, weiAmount);        
-        console.log(result.toString());
     });
 });
 
