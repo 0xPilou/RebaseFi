@@ -1,3 +1,6 @@
+
+// npx hardhat run --network localhost script/2_provision_account.js
+
 async function main() {
 
 
