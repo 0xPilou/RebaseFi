@@ -107,6 +107,55 @@ contract MooCurveZap is Ownable {
         );
     }
 
+    function zapToCurveLP(address _tokenToZap, uint256 _amountToZap) external {
+        // Ensure the contract is not paused
+        require(pauseStatus == false, "Contract paused");
+        // Ensure the user has sufficient balance
+        require(
+            IERC20(_tokenToZap).balanceOf(address(msg.sender)) >= _amountToZap,
+            "Insufficient balance"
+        );
+        // Transfer the token to zap from the user to the contract
+        IERC20(_tokenToZap).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amountToZap
+        );
+
+        (bool supported, ) = _isUnderlying(_tokenToZap);
+
+        // If the token to zap is an underlying token of the Curve Pool, add it directly to the Curve Pool
+        if (supported) {
+            _addLiquidityToCurve(_tokenToZap, _amountToZap);
+
+            // Else if the token is not an underlying, swap it for the most efficient underlying
+            // then add it to the Curve Pool
+        } else {
+            uint256 bestRoute = _calculateBestRoute(_tokenToZap, _amountToZap);
+            address[] memory path = new address[](2);
+            path[0] = _tokenToZap;
+            path[1] = underlyingTokens[bestRoute];
+            IERC20(_tokenToZap).safeApprove(uniV2Router, _amountToZap);
+
+            IUniswapV2Router(uniV2Router).swapExactTokensForTokens(
+                IERC20(_tokenToZap).balanceOf(address(this)),
+                0,
+                path,
+                address(this),
+                block.timestamp.add(600)
+            );
+            _addLiquidityToCurve(
+                underlyingTokens[bestRoute],
+                IERC20(underlyingTokens[bestRoute]).balanceOf(address(this))
+            );
+        }
+        // Transfer the liquidity ownership token (CurveLP) to the user
+        IERC20(curveLP).safeTransfer(
+            msg.sender,
+            IERC20(curveLP).balanceOf(address(this))
+        );
+    }
+
     function unzap(address _tokenToReceive, uint256 _amountToUnzap) external {
         require(pauseStatus == false, "Contract paused");
         require(

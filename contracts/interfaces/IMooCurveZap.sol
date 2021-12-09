@@ -9,6 +9,8 @@ interface IMooCurveZap {
 
     function zap(address _tokenToZap, uint256 _amountToZap) external;
 
+    function zapToCurveLP(address _tokenToZap, uint256 _amountToZap) external;
+
     function unzap(address _tokenToReceive, uint256 _amountToUnzap) external;
 
     function calculateBestOption(uint256[3] calldata _amounts) external view returns (uint);
