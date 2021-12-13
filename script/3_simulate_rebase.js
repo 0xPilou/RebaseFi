@@ -30,7 +30,7 @@ async function main() {
     const userVaultAddr = await timeOptimizerFactory.getOwnerOptimizer(user.address);
 
     const memoDecimals = await memo.decimals();
-    const amount = 20;
+    const amount = 0.01;
     const weiAmount = ethers.utils.parseUnits(amount.toString(), memoDecimals);
     await memo.connect(whaleMEMO).transfer(userVaultAddr, weiAmount);
 
